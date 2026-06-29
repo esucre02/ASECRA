@@ -233,16 +233,16 @@ init_db()
 st.markdown("""
 <style>
   .block-container{padding-top:1.2rem;max-width:880px}
-  .asecra-head{display:flex;align-items:center;gap:18px;
+  .asecra-head{display:flex;align-items:center;gap:20px;
     background:linear-gradient(135deg,#16357a 0%,#1b3a8f 60%,#234aa8 100%);
-    color:#fff;padding:18px 22px;border-radius:16px;
+    color:#fff;padding:22px 26px;border-radius:16px;
     border-left:7px solid #d52b1e;margin-bottom:10px;
     box-shadow:0 6px 20px rgba(22,53,122,.18)}
-  .asecra-head .crest{flex:0 0 auto;width:64px;height:80px;background:#fff;
-    border-radius:12px;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
-  .asecra-head .crest img{width:100%;height:100%;display:block;object-fit:contain}
-  .asecra-head h1{margin:0;font-size:1.55rem;letter-spacing:.02em;line-height:1.1}
-  .asecra-head p{margin:6px 0 0;color:#cdd9f5;font-size:.82rem}
+  .asecra-head .crest{flex:0 0 auto;width:84px;height:84px;background:#fff;
+    border-radius:14px;padding:8px;box-shadow:0 2px 8px rgba(0,0,0,.12);
+    display:flex;align-items:center;justify-content:center}
+  .asecra-head .crest img{max-width:100%;max-height:100%;display:block;object-fit:contain}
+  .asecra-head h1{margin:0;font-size:1.7rem;letter-spacing:.02em;line-height:1.15}
   div[data-testid="stMetricValue"]{font-size:1.4rem;color:#16357a}
   /* tarjetas (lugares y voluntarios) */
   div[data-testid="stVerticalBlockBorderWrapper"]{background:#fff;border-radius:12px}
@@ -257,13 +257,15 @@ st.markdown("""
   .vcard .ph{font-family:monospace;font-size:.95rem;color:#16264d;margin-top:2px}
   .vcard .bg{display:inline-block;background:#e3ebfb;color:#1b3a8f;font-size:.7rem;
     font-weight:600;padding:2px 9px;border-radius:20px;margin-top:6px}
-  .stTabs [data-baseweb="tab"]{font-size:.92rem}
+  /* pestañas centradas y distribuidas equitativamente */
+  .stTabs [data-baseweb="tab-list"]{gap:0;width:100%}
+  .stTabs [data-baseweb="tab-list"] button{flex:1 1 0}
+  .stTabs [data-baseweb="tab"]{font-size:.92rem;justify-content:center}
 </style>
 <div class="asecra-head">
   <div class="crest">__CREST__</div>
   <div>
     <h1>ASECRA — Centro de Acopio</h1>
-    <p>Gestión de envíos y voluntarios · La Guaira &nbsp;|&nbsp; Ref: 0414-2216670 (Ale)</p>
   </div>
 </div>
 """.replace("__CREST__", CREST_HTML), unsafe_allow_html=True)
