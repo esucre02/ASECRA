@@ -19,8 +19,10 @@ CATEGORIAS = [
     "Comunidad / Damnificados", "Comunidad", "Rescatistas", "Rescatistas (animales)", "Cruz Roja",
     "Bomberos", "Protección Civil", "Servicio / Logística", "Persona / Contacto", "Hospital / Persona",
 ]
-AREAS = ["General", "Recepción", "Clasificación", "Empaque", "Transporte / Logística",
-         "Entrega en sitio", "Inventario", "Coordinación", "Salud / Medicinas"]
+VOLUNTARIADO_OPC = [
+    "Exalumna", "Alumna", "Voluntaria", "Voluntario", "Voluntaria USB",
+    "Mamá de alumna", "Papá", "CR", "CCR", "CUMIS UCV", "Otro",
+]
 
 SEED_LUGARES = [
     ("Rescatistas Brasileros", "Rescatistas", "", "", "—"),
@@ -66,12 +68,64 @@ SEED_LUGARES = [
     ("Protección Civil La Guaira", "Protección Civil", "", "", "—"),
 ]
 
+# (nombre, celular, voluntariado) — transcrito de las hojas
+SEED_VOLUNTARIOS = [
+    ("Mayanta Yintino", "04143226600", "Sin clasificar"),
+    ("Marisol Guevara", "04122248684", "CCR"),
+    ("José Mendoza", "04141878144", "CR"),
+    ("Jackie Bandres", "04149905331", "CR"),
+    ("Elena Borges", "04145313631", "CR"),
+    ("María Luisa Herrera", "04143268493", "CR"),
+    ("Yosman Velázquez", "04141066116", "CUMIS UCV"),
+    ("César El Kadi", "04242294229", "CUMIS UCV"),
+    ("Mónica Piña", "04143184016", "Exalumna"),
+    ("Eugenia Piña", "04143365826", "Exalumna"),
+    ("Cristina Ballesteros", "04211673066", "Voluntaria USB"),
+    ("Mariana Lozano", "04143113872", "CR"),
+    ("Chelena Díaz", "04241956462", "CCR"),
+    ("María Daniela Domínguez", "04140331144", "Exalumna"),
+    ("Daniela Silva", "04122341764", "Voluntaria"),
+    ("Vivianna Molino", "04143907290", "Exalumna"),
+    ("Anastasia Almea", "04122847544", "Alumna"),
+    ("Claudia C. Lugo", "04120356323", "Mamá de alumna"),
+    ("Maia Traegnis Wetter", "04129098366", "Voluntaria"),
+    ("Reece Graham", "04129098366", "Voluntario"),
+    ("María Elena Sosa", "04142930015", "Exalumna"),
+    ("Elisa Elia", "04241355087", "Alumna"),
+    ("Paula Basmagi", "04242324411", "Voluntaria"),
+    ("Sarah Soriano", "04142362564", "Sin clasificar"),
+    ("Daniela Castro", "04241416051", "Exalumna"),
+    ("María Isabel Aristeguieta", "04125203810", "Exalumna"),
+    ("Helena Marcano", "04143000749", "Exalumna"),
+    ("Corina Serrano", "04126303453", "Alumna"),
+    ("Miguel Vázquez", "04143332231", "Papá ex-alumnas"),
+    ("Anabella Paolini", "04143312002", "Voluntaria"),
+    ("Federika Ziadie", "04125483726", "Exalumna"),
+    ("Miled Ziadie", "04241918739", "Voluntaria"),
+    ("Carolina Blank", "04142629392", "Voluntaria"),
+    ("María Pía Meda", "04142629392", "Voluntaria"),
+    ("Andrea Kohler", "04241708934", "Alumna"),
+    ("Ana Isabel Santiago", "04220240244", "Alumna"),
+    ("Priscilla González", "04143377401", "Alumna"),
+    ("Francisco Santiago M.", "04141062866", "CCR"),
+    ("Mercedes Mejía", "04122432154", "Mamá Cristo Rey"),
+    ("Nelson Rector", "04123901120", "Papá Cristo Rey"),
+    ("Asdrúbal Serrano", "04143095891", "Papá CR 3°-5°"),
+    ("Mariana Hernández", "04126211011", "Sin clasificar"),
+    ("Leandro Rossi", "04141157351", "CR"),
+    ("Anadela Sanabria", "04123724101", "Exalumna"),
+]
+
 
 # ----------------------------- base de datos -----------------------------
 def get_conn():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.execute("PRAGMA journal_mode=WAL;")
     return conn
+
+
+def stamp():
+    return dt.datetime.now().strftime("%d/%m/%Y %H:%M")
 
 
 def init_db():
@@ -82,10 +136,18 @@ def init_db():
         lugar TEXT, categoria TEXT, contacto TEXT, detalle TEXT,
         tipo TEXT, articulos TEXT, estado TEXT, responsable TEXT,
         actualizado TEXT)""")
+
+    # voluntarios: migrar si viene de un esquema viejo (sin 'celular')
     cur.execute("""CREATE TABLE IF NOT EXISTS voluntarios(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT, telefono TEXT, area TEXT, disponibilidad TEXT,
-        notas TEXT, registrado TEXT)""")
+        nombre TEXT, celular TEXT, voluntariado TEXT, registrado TEXT)""")
+    cols = [r[1] for r in cur.execute("PRAGMA table_info(voluntarios)").fetchall()]
+    if "celular" not in cols:
+        cur.execute("DROP TABLE voluntarios")
+        cur.execute("""CREATE TABLE voluntarios(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT, celular TEXT, voluntariado TEXT, registrado TEXT)""")
+
     cur.execute("SELECT COUNT(*) FROM lugares")
     if cur.fetchone()[0] == 0:
         now = stamp()
@@ -95,12 +157,17 @@ def init_db():
                 "INSERT INTO lugares(lugar,categoria,contacto,detalle,tipo,articulos,estado,responsable,actualizado)"
                 " VALUES(?,?,?,?,?,?,?,?,?)",
                 (lugar, cat, cont, det, tipo, "", estado, "—", now))
+
+    cur.execute("SELECT COUNT(*) FROM voluntarios")
+    if cur.fetchone()[0] == 0:
+        now = stamp()
+        for nombre, celular, vol in SEED_VOLUNTARIOS:
+            cur.execute(
+                "INSERT INTO voluntarios(nombre,celular,voluntariado,registrado) VALUES(?,?,?,?)",
+                (nombre, celular, vol, now))
+
     conn.commit()
     conn.close()
-
-
-def stamp():
-    return dt.datetime.now().strftime("%d/%m/%Y %H:%M")
 
 
 def load_lugares():
@@ -112,16 +179,16 @@ def load_lugares():
 
 def load_voluntarios():
     conn = get_conn()
-    df = pd.read_sql_query("SELECT * FROM voluntarios ORDER BY id", conn)
+    df = pd.read_sql_query("SELECT * FROM voluntarios ORDER BY nombre", conn)
     conn.close()
     return df
 
 
-def add_voluntario(nombre, telefono, area, disponibilidad, notas):
+def add_voluntario(nombre, celular, voluntariado):
     conn = get_conn()
     conn.execute(
-        "INSERT INTO voluntarios(nombre,telefono,area,disponibilidad,notas,registrado) VALUES(?,?,?,?,?,?)",
-        (nombre, telefono, area, disponibilidad, notas, stamp()))
+        "INSERT INTO voluntarios(nombre,celular,voluntariado,registrado) VALUES(?,?,?,?)",
+        (nombre, celular, voluntariado, stamp()))
     conn.commit()
     conn.close()
 
@@ -172,6 +239,12 @@ st.markdown("""
   .asecra-head h1{margin:0;font-size:1.7rem;letter-spacing:.04em}
   .asecra-head p{margin:4px 0 0;color:#d8c3a0;font-size:.85rem}
   div[data-testid="stMetricValue"]{font-size:1.6rem}
+  .vcard{background:#fff;border:1px solid #d8c3a0;border-left:5px solid #bb432c;
+    border-radius:10px;padding:11px 14px;margin-bottom:10px}
+  .vcard .nm{font-weight:700;font-size:1.02rem;color:#1b2a33}
+  .vcard .ph{font-family:monospace;font-size:.95rem;color:#1b2a33;margin-top:2px}
+  .vcard .bg{display:inline-block;background:#ece0c9;color:#5e4d33;font-size:.7rem;
+    font-weight:600;padding:2px 9px;border-radius:20px;margin-top:6px}
 </style>
 <div class="asecra-head">
   <h1>📦 ASECRA — Centro de Acopio</h1>
@@ -188,7 +261,6 @@ tab_lugares, tab_vol, tab_resumen = st.tabs(
 # ===================== LUGARES =====================
 with tab_lugares:
     lug = load_lugares()
-
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total lugares", len(lug))
     c2.metric("Pendientes", int((lug["estado"] == "Pendiente").sum()))
@@ -208,15 +280,10 @@ with tab_lugares:
             .fillna("").astype(str).apply(lambda r: q in " ".join(r).lower(), axis=1)
         vista = vista[mask]
 
-    st.caption("Edita directamente en la tabla. Los cambios se guardan al pulsar **Guardar cambios**. "
-               "Asigna un **responsable** a cada envío para que dos personas no tomen la misma tarea.")
-
+    st.caption("Edita en la tabla y pulsa **Guardar cambios**. Asigna un **responsable** a cada envío "
+               "para que dos personas no tomen la misma tarea.")
     edit = st.data_editor(
-        vista,
-        key="editor_lugares",
-        use_container_width=True,
-        hide_index=True,
-        num_rows="fixed",
+        vista, key="editor_lugares", use_container_width=True, hide_index=True, num_rows="fixed",
         column_order=["lugar", "categoria", "contacto", "detalle", "tipo",
                       "articulos", "estado", "responsable", "actualizado"],
         column_config={
@@ -232,9 +299,7 @@ with tab_lugares:
             "actualizado": st.column_config.TextColumn("Últ. actualización", disabled=True),
         },
     )
-
-    b1, b2 = st.columns([1, 4])
-    if b1.button("💾 Guardar cambios", type="primary", use_container_width=True):
+    if st.button("💾 Guardar cambios", type="primary"):
         orig = lug.set_index("id")
         cambios = 0
         for _, row in edit.iterrows():
@@ -243,7 +308,7 @@ with tab_lugares:
                 before = orig.loc[rid]
                 campos = ["lugar", "categoria", "contacto", "detalle", "tipo",
                           "articulos", "estado", "responsable"]
-                if any((str(before[c]) != str(row[c])) for c in campos):
+                if any(str(before[c]) != str(row[c]) for c in campos):
                     update_lugar(row)
                     cambios += 1
         st.success(f"Guardado. {cambios} registro(s) actualizado(s).")
@@ -265,86 +330,85 @@ with tab_lugares:
                     st.rerun()
                 else:
                     st.error("El nombre del lugar es obligatorio.")
-
     with st.expander("🗑️ Eliminar un lugar"):
         if not lug.empty:
             opt = {f'{r.id} · {r.lugar}': int(r.id) for r in lug.itertuples()}
-            sel = st.selectbox("Selecciona el lugar a eliminar", list(opt.keys()))
+            sel = st.selectbox("Lugar a eliminar", list(opt.keys()))
             if st.button("Eliminar lugar seleccionado"):
-                delete_lugar(opt[sel])
-                st.warning("Lugar eliminado.")
-                st.rerun()
+                delete_lugar(opt[sel]); st.warning("Lugar eliminado."); st.rerun()
 
-    st.download_button(
-        "⤓ Descargar lista (CSV / Excel)",
+    st.download_button("⤓ Descargar lista (CSV / Excel)",
         data=lug.drop(columns=["id"]).to_csv(index=False, sep=";").encode("utf-8-sig"),
         file_name="asecra_lugares.csv", mime="text/csv")
 
 # ===================== VOLUNTARIOS =====================
 with tab_vol:
-    st.subheader("Registro de voluntarios")
-    st.caption("Anótate aquí para sumarte al acopio. Tu nombre quedará disponible para asignarte como "
-               "**responsable** de envíos en la otra pestaña.")
-
+    st.subheader("Registrar voluntario")
     with st.form("form_vol", clear_on_submit=True):
-        v1, v2 = st.columns(2)
-        vnombre = v1.text_input("Nombre y apellido *")
-        vtel = v2.text_input("Teléfono *")
-        v3, v4 = st.columns(2)
-        varea = v3.selectbox("Área en la que ayudas", AREAS)
-        vdisp = v4.text_input("Disponibilidad (días / horas)")
-        vnotas = st.text_input("Notas (vehículo propio, zona, etc.)")
-        if st.form_submit_button("Registrarme como voluntario", type="primary"):
-            if vnombre.strip() and vtel.strip():
+        v1, v2, v3 = st.columns([3, 2, 2])
+        vnombre = v1.text_input("Nombre *")
+        vcel = v2.text_input("Celular *")
+        vsel = v3.selectbox("Voluntariado", VOLUNTARIADO_OPC)
+        votro = st.text_input("Si elegiste «Otro», especifica aquí", "")
+        if st.form_submit_button("Registrar", type="primary"):
+            vol_val = votro.strip() if vsel == "Otro" and votro.strip() else vsel
+            if vnombre.strip() and vcel.strip():
                 dup = vol_df[(vol_df["nombre"].str.strip().str.lower() == vnombre.strip().lower())
-                             & (vol_df["telefono"].str.strip() == vtel.strip())] if not vol_df.empty else pd.DataFrame()
+                             & (vol_df["celular"].str.strip() == vcel.strip())] if not vol_df.empty else pd.DataFrame()
                 if not dup.empty:
-                    st.warning("Ya existe un voluntario con ese nombre y teléfono. No se duplicó.")
+                    st.warning("Ya existe un voluntario con ese nombre y celular. No se duplicó.")
                 else:
-                    add_voluntario(vnombre.strip(), vtel.strip(), varea, vdisp.strip(), vnotas.strip())
-                    st.success(f"¡Registrado, {vnombre.strip()}! Gracias por sumarte.")
+                    add_voluntario(vnombre.strip(), vcel.strip(), vol_val)
+                    st.success(f"¡Registrado, {vnombre.strip()}!")
                     st.rerun()
             else:
-                st.error("Nombre y teléfono son obligatorios.")
+                st.error("Nombre y celular son obligatorios.")
 
     st.divider()
     vol_df = load_voluntarios()
-    st.subheader(f"Voluntarios registrados ({len(vol_df)})")
-    if vol_df.empty:
-        st.info("Aún no hay voluntarios. Sé el primero en registrarte arriba.")
+    fb1, fb2 = st.columns([2, 3])
+    cats_vol = ["Todos"] + sorted(vol_df["voluntariado"].dropna().unique().tolist()) if not vol_df.empty else ["Todos"]
+    fvol = fb1.selectbox("Filtrar por voluntariado", cats_vol)
+    bvol = fb2.text_input("Buscar voluntario (nombre o celular)", "")
+
+    vv = vol_df.copy()
+    if fvol != "Todos":
+        vv = vv[vv["voluntariado"] == fvol]
+    if bvol.strip():
+        q = bvol.strip().lower()
+        vv = vv[vv.apply(lambda r: q in f'{r["nombre"]} {r["celular"]}'.lower(), axis=1)]
+
+    st.subheader(f"Voluntarios ({len(vv)} de {len(vol_df)})")
+    if vv.empty:
+        st.info("No hay voluntarios que coincidan.")
     else:
-        show = vol_df.rename(columns={
-            "nombre": "Nombre", "telefono": "Teléfono", "area": "Área",
-            "disponibilidad": "Disponibilidad", "notas": "Notas", "registrado": "Registrado"})
-        st.dataframe(show.drop(columns=["id"]), use_container_width=True, hide_index=True)
+        cols = st.columns(2)
+        for i, r in enumerate(vv.itertuples()):
+            with cols[i % 2]:
+                st.markdown(
+                    f'<div class="vcard"><div class="nm">{r.nombre}</div>'
+                    f'<div class="ph">{r.celular}</div>'
+                    f'<span class="bg">{r.voluntariado}</span></div>',
+                    unsafe_allow_html=True)
 
         with st.expander("🗑️ Dar de baja un voluntario"):
-            optv = {f'{r.id} · {r.nombre}': int(r.id) for r in vol_df.itertuples()}
-            selv = st.selectbox("Selecciona el voluntario", list(optv.keys()))
+            optv = {f'{r.nombre} · {r.celular}': int(r.id) for r in vol_df.itertuples()}
+            selv = st.selectbox("Voluntario", list(optv.keys()))
             if st.button("Dar de baja"):
-                delete_voluntario(optv[selv])
-                st.warning("Voluntario dado de baja.")
-                st.rerun()
+                delete_voluntario(optv[selv]); st.warning("Voluntario dado de baja."); st.rerun()
 
-        st.download_button(
-            "⤓ Descargar voluntarios (CSV / Excel)",
-            data=vol_df.drop(columns=["id"]).to_csv(index=False, sep=";").encode("utf-8-sig"),
-            file_name="asecra_voluntarios.csv", mime="text/csv")
+    st.download_button("⤓ Descargar voluntarios (CSV / Excel)",
+        data=vol_df.drop(columns=["id"]).to_csv(index=False, sep=";").encode("utf-8-sig"),
+        file_name="asecra_voluntarios.csv", mime="text/csv")
 
 # ===================== RESUMEN =====================
 with tab_resumen:
     lug = load_lugares()
-    st.subheader("Seguimiento por estado")
-    est = lug["estado"].value_counts().reindex(ESTADOS, fill_value=0)
-    st.bar_chart(est)
-
-    st.subheader("Lugares por categoría")
-    cat = lug["categoria"].value_counts()
-    st.bar_chart(cat)
-
-    st.subheader("Carga por responsable")
-    resp = lug[lug["responsable"] != "—"]["responsable"].value_counts()
-    if resp.empty:
-        st.info("Todavía no hay envíos con responsable asignado.")
+    vol_df = load_voluntarios()
+    st.subheader("Envíos por estado")
+    st.bar_chart(lug["estado"].value_counts().reindex(ESTADOS, fill_value=0))
+    st.subheader("Voluntarios por voluntariado")
+    if vol_df.empty:
+        st.info("Sin voluntarios aún.")
     else:
-        st.bar_chart(resp)
+        st.bar_chart(vol_df["voluntariado"].value_counts())
