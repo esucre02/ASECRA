@@ -24,8 +24,8 @@ VOLUNTARIADO_OPC = [
     "Mamá de alumna", "Papá", "CR", "CCR", "CUMIS UCV", "Otro",
 ]
 ESTADO_COLOR = {
-    "Pendiente": "#c08a2e", "En preparación": "#2e6da4", "Listo para enviar": "#2e6da4",
-    "Enviado": "#1b2a33", "Entregado": "#3c7a57",
+    "Pendiente": "#d52b1e", "En preparación": "#2a5cd0", "Listo para enviar": "#1b3a8f",
+    "Enviado": "#16264d", "Entregado": "#2e7d57",
 }
 
 SEED_LUGARES = [
@@ -209,42 +209,98 @@ def cb_save(lid, field, key):
 
 
 # ----------------------------- UI -----------------------------
-st.set_page_config(page_title="ASECRA · Centro de Acopio", page_icon="📦", layout="centered")
+# Escudo Colegio Cristo Rey (SVG vectorial, sin emojis)
+CREST_SVG = """
+<svg viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Escudo Colegio Cristo Rey">
+  <!-- corona -->
+  <rect x="56" y="2" width="8" height="3" fill="#16357a"/>
+  <rect x="57.5" y="0" width="5" height="7" fill="#16357a"/>
+  <rect x="38" y="22" width="44" height="7" rx="2" fill="#16357a"/>
+  <path d="M38 24 L46 12 L52 22 L60 9 L68 22 L74 12 L82 24 Z" fill="#d52b1e" stroke="#16357a" stroke-width="1.5"/>
+  <circle cx="46" cy="12" r="2.6" fill="#16357a"/>
+  <circle cx="60" cy="9" r="2.8" fill="#16357a"/>
+  <circle cx="74" cy="12" r="2.6" fill="#16357a"/>
+  <!-- escudo -->
+  <defs>
+    <clipPath id="shield">
+      <path d="M20 44 H100 V96 C100 122 82 138 60 148 C38 138 20 122 20 96 Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#shield)">
+    <rect x="20" y="44" width="80" height="106" fill="#ffffff"/>
+    <!-- franjas rojas verticales (mitad inferior) -->
+    <g fill="#d52b1e">
+      <rect x="24" y="96" width="9" height="54"/>
+      <rect x="42" y="96" width="9" height="54"/>
+      <rect x="60" y="96" width="9" height="54"/>
+      <rect x="78" y="96" width="9" height="54"/>
+    </g>
+    <!-- banda diagonal azul -->
+    <polygon points="20,96 36,96 100,150 78,150" fill="#16357a"/>
+    <!-- banda superior COLEGIO -->
+    <rect x="20" y="44" width="80" height="20" fill="#ffffff"/>
+    <rect x="22" y="46" width="76" height="16" rx="2" fill="none" stroke="#16357a" stroke-width="2.5"/>
+    <text x="60" y="58" text-anchor="middle" font-family="Georgia, serif" font-size="11"
+          font-weight="700" fill="#16357a" letter-spacing="1">COLEGIO</text>
+    <!-- monograma CR -->
+    <text x="62" y="90" text-anchor="middle" font-family="Georgia, serif" font-size="26"
+          font-weight="700" fill="#16357a">CR</text>
+  </g>
+  <path d="M20 44 H100 V96 C100 122 82 138 60 148 C38 138 20 122 20 96 Z"
+        fill="none" stroke="#16357a" stroke-width="3"/>
+</svg>
+"""
+
+st.set_page_config(page_title="ASECRA · Centro de Acopio",
+                   page_icon=":material/volunteer_activism:", layout="centered")
 init_db()
 
 st.markdown("""
 <style>
   .block-container{padding-top:1.2rem;max-width:880px}
-  .asecra-head{background:#1b2a33;color:#f3ead8;padding:16px 20px;border-radius:14px;
-    border-left:6px solid #bb432c;margin-bottom:6px}
-  .asecra-head h1{margin:0;font-size:1.5rem;letter-spacing:.03em}
-  .asecra-head p{margin:4px 0 0;color:#d8c3a0;font-size:.82rem}
-  div[data-testid="stMetricValue"]{font-size:1.4rem}
+  .asecra-head{display:flex;align-items:center;gap:18px;
+    background:linear-gradient(135deg,#16357a 0%,#1b3a8f 60%,#234aa8 100%);
+    color:#fff;padding:18px 22px;border-radius:16px;
+    border-left:7px solid #d52b1e;margin-bottom:10px;
+    box-shadow:0 6px 20px rgba(22,53,122,.18)}
+  .asecra-head .crest{flex:0 0 auto;width:64px;height:80px;background:#fff;
+    border-radius:12px;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+  .asecra-head .crest svg{width:100%;height:100%;display:block}
+  .asecra-head h1{margin:0;font-size:1.55rem;letter-spacing:.02em;line-height:1.1}
+  .asecra-head p{margin:6px 0 0;color:#cdd9f5;font-size:.82rem}
+  div[data-testid="stMetricValue"]{font-size:1.4rem;color:#16357a}
   /* tarjetas (lugares y voluntarios) */
   div[data-testid="stVerticalBlockBorderWrapper"]{background:#fff;border-radius:12px}
-  .lname{font-weight:700;font-size:1.06rem;color:#1b2a33;line-height:1.15}
-  .lmeta{font-size:.8rem;color:#6f5d40;margin-top:3px}
-  .lmeta .cat{background:#ece0c9;color:#5e4d33;font-weight:600;padding:1px 8px;border-radius:20px}
-  .lmeta .warn{color:#9a3522;font-weight:600}
+  .lname{font-weight:700;font-size:1.06rem;color:#16264d;line-height:1.15}
+  .lmeta{font-size:.8rem;color:#5a6b8c;margin-top:3px}
+  .lmeta .cat{background:#e3ebfb;color:#1b3a8f;font-weight:600;padding:1px 8px;border-radius:20px}
+  .lmeta .warn{color:#c0392b;font-weight:600}
   .ebadge{float:right;color:#fff;font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:.02em}
-  .vcard{background:#fff;border:1px solid #e3d4b6;border-left:5px solid #bb432c;
+  .vcard{background:#fff;border:1px solid #d6e0f3;border-left:5px solid #d52b1e;
     border-radius:11px;padding:11px 14px;margin-bottom:10px}
-  .vcard .nm{font-weight:700;font-size:1.02rem;color:#1b2a33}
-  .vcard .ph{font-family:monospace;font-size:.95rem;color:#1b2a33;margin-top:2px}
-  .vcard .bg{display:inline-block;background:#ece0c9;color:#5e4d33;font-size:.7rem;
+  .vcard .nm{font-weight:700;font-size:1.02rem;color:#16264d}
+  .vcard .ph{font-family:monospace;font-size:.95rem;color:#16264d;margin-top:2px}
+  .vcard .bg{display:inline-block;background:#e3ebfb;color:#1b3a8f;font-size:.7rem;
     font-weight:600;padding:2px 9px;border-radius:20px;margin-top:6px}
   .stTabs [data-baseweb="tab"]{font-size:.92rem}
 </style>
 <div class="asecra-head">
-  <h1>📦 ASECRA — Centro de Acopio</h1>
-  <p>Gestión de envíos y voluntarios · La Guaira &nbsp;|&nbsp; Ref: 0414-2216670 (Ale)</p>
+  <div class="crest">__CREST__</div>
+  <div>
+    <h1>ASECRA — Centro de Acopio</h1>
+    <p>Gestión de envíos y voluntarios · La Guaira &nbsp;|&nbsp; Ref: 0414-2216670 (Ale)</p>
+  </div>
 </div>
-""", unsafe_allow_html=True)
+""".replace("__CREST__", CREST_SVG), unsafe_allow_html=True)
 
 vol_df = load_voluntarios()
 resp_base = ["—"] + vol_df["nombre"].dropna().tolist() if not vol_df.empty else ["—"]
 
-tab_lugares, tab_vol, tab_resumen = st.tabs(["📍 Lugares para enviar", "🙋 Voluntarios", "📊 Resumen"])
+tab_lugares, tab_vol, tab_resumen = st.tabs([
+    ":material/place: Lugares para enviar",
+    ":material/volunteer_activism: Voluntarios",
+    ":material/bar_chart: Resumen",
+])
 
 # ===================== LUGARES =====================
 with tab_lugares:
@@ -299,7 +355,7 @@ with tab_lugares:
                          placeholder="Anota lo que va a este lugar…")
 
     st.divider()
-    with st.expander("➕ Agregar un lugar"):
+    with st.expander(":material/add_circle: Agregar un lugar"):
         with st.form("form_lugar", clear_on_submit=True):
             nl = st.text_input("Lugar / Destinatario *")
             nc = st.selectbox("Categoría", CATEGORIAS)
@@ -311,14 +367,14 @@ with tab_lugares:
                     add_lugar(nl.strip(), nc, ncont.strip(), ndet.strip()); st.rerun()
                 else:
                     st.error("El nombre del lugar es obligatorio.")
-    with st.expander("🗑️ Eliminar un lugar"):
+    with st.expander(":material/delete: Eliminar un lugar"):
         if not lug.empty:
             opt = {f'{x.lugar}': int(x.id) for x in lug.itertuples()}
             sel = st.selectbox("Lugar a eliminar", list(opt.keys()))
             if st.button("Eliminar"):
                 delete_lugar(opt[sel]); st.rerun()
 
-    st.download_button("⤓ Descargar lista (CSV / Excel)",
+    st.download_button(":material/download: Descargar lista (CSV / Excel)",
         data=lug.drop(columns=["id"]).to_csv(index=False, sep=";").encode("utf-8-sig"),
         file_name="asecra_lugares.csv", mime="text/csv")
 
@@ -367,13 +423,13 @@ with tab_vol:
                 st.markdown(f'<div class="vcard"><div class="nm">{r.nombre}</div>'
                             f'<div class="ph">{r.celular}</div>'
                             f'<span class="bg">{r.voluntariado}</span></div>', unsafe_allow_html=True)
-        with st.expander("🗑️ Dar de baja un voluntario"):
+        with st.expander(":material/person_remove: Dar de baja un voluntario"):
             optv = {f'{r.nombre} · {r.celular}': int(r.id) for r in vol_df.itertuples()}
             selv = st.selectbox("Voluntario", list(optv.keys()))
             if st.button("Dar de baja"):
                 delete_voluntario(optv[selv]); st.rerun()
 
-    st.download_button("⤓ Descargar voluntarios (CSV / Excel)",
+    st.download_button(":material/download: Descargar voluntarios (CSV / Excel)",
         data=vol_df.drop(columns=["id"]).to_csv(index=False, sep=";").encode("utf-8-sig"),
         file_name="asecra_voluntarios.csv", mime="text/csv")
 
