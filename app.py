@@ -2,6 +2,7 @@
 ASECRA — Centro de Acopio
 App de gestión de envíos y voluntarios (Streamlit).
 """
+import base64
 import sqlite3
 import datetime as dt
 from pathlib import Path
@@ -209,47 +210,21 @@ def cb_save(lid, field, key):
 
 
 # ----------------------------- UI -----------------------------
-# Escudo Colegio Cristo Rey (SVG vectorial, sin emojis)
-CREST_SVG = """
-<svg viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Escudo Colegio Cristo Rey">
-  <!-- corona -->
-  <rect x="56" y="2" width="8" height="3" fill="#16357a"/>
-  <rect x="57.5" y="0" width="5" height="7" fill="#16357a"/>
-  <rect x="38" y="22" width="44" height="7" rx="2" fill="#16357a"/>
-  <path d="M38 24 L46 12 L52 22 L60 9 L68 22 L74 12 L82 24 Z" fill="#d52b1e" stroke="#16357a" stroke-width="1.5"/>
-  <circle cx="46" cy="12" r="2.6" fill="#16357a"/>
-  <circle cx="60" cy="9" r="2.8" fill="#16357a"/>
-  <circle cx="74" cy="12" r="2.6" fill="#16357a"/>
-  <!-- escudo -->
-  <defs>
-    <clipPath id="shield">
-      <path d="M20 44 H100 V96 C100 122 82 138 60 148 C38 138 20 122 20 96 Z"/>
-    </clipPath>
-  </defs>
-  <g clip-path="url(#shield)">
-    <rect x="20" y="44" width="80" height="106" fill="#ffffff"/>
-    <!-- franjas rojas verticales (mitad inferior) -->
-    <g fill="#d52b1e">
-      <rect x="24" y="96" width="9" height="54"/>
-      <rect x="42" y="96" width="9" height="54"/>
-      <rect x="60" y="96" width="9" height="54"/>
-      <rect x="78" y="96" width="9" height="54"/>
-    </g>
-    <!-- banda diagonal azul -->
-    <polygon points="20,96 36,96 100,150 78,150" fill="#16357a"/>
-    <!-- banda superior COLEGIO -->
-    <rect x="20" y="44" width="80" height="20" fill="#ffffff"/>
-    <rect x="22" y="46" width="76" height="16" rx="2" fill="none" stroke="#16357a" stroke-width="2.5"/>
-    <text x="60" y="58" text-anchor="middle" font-family="Georgia, serif" font-size="11"
-          font-weight="700" fill="#16357a" letter-spacing="1">COLEGIO</text>
-    <!-- monograma CR -->
-    <text x="62" y="90" text-anchor="middle" font-family="Georgia, serif" font-size="26"
-          font-weight="700" fill="#16357a">CR</text>
-  </g>
-  <path d="M20 44 H100 V96 C100 122 82 138 60 148 C38 138 20 122 20 96 Z"
-        fill="none" stroke="#16357a" stroke-width="3"/>
-</svg>
-"""
+# Escudo Colegio Cristo Rey (logo oficial)
+LOGO_PATH = Path(__file__).parent / "Colegio Cristo Rey Logo.jpg"
+
+
+def crest_html():
+    """Devuelve el <img> del logo embebido en base64, o cadena vacía si falta."""
+    try:
+        data = base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
+    except OSError:
+        return ""
+    return (f'<img src="data:image/jpeg;base64,{data}" '
+            f'alt="Escudo Colegio Cristo Rey"/>')
+
+
+CREST_HTML = crest_html()
 
 st.set_page_config(page_title="ASECRA · Centro de Acopio",
                    page_icon=":material/volunteer_activism:", layout="centered")
@@ -265,7 +240,7 @@ st.markdown("""
     box-shadow:0 6px 20px rgba(22,53,122,.18)}
   .asecra-head .crest{flex:0 0 auto;width:64px;height:80px;background:#fff;
     border-radius:12px;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
-  .asecra-head .crest svg{width:100%;height:100%;display:block}
+  .asecra-head .crest img{width:100%;height:100%;display:block;object-fit:contain}
   .asecra-head h1{margin:0;font-size:1.55rem;letter-spacing:.02em;line-height:1.1}
   .asecra-head p{margin:6px 0 0;color:#cdd9f5;font-size:.82rem}
   div[data-testid="stMetricValue"]{font-size:1.4rem;color:#16357a}
@@ -291,7 +266,7 @@ st.markdown("""
     <p>Gestión de envíos y voluntarios · La Guaira &nbsp;|&nbsp; Ref: 0414-2216670 (Ale)</p>
   </div>
 </div>
-""".replace("__CREST__", CREST_SVG), unsafe_allow_html=True)
+""".replace("__CREST__", CREST_HTML), unsafe_allow_html=True)
 
 vol_df = load_voluntarios()
 resp_base = ["—"] + vol_df["nombre"].dropna().tolist() if not vol_df.empty else ["—"]
